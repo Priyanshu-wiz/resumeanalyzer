@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{%block content %}
+<h1>Welcome user</h1>
+<div class="card">
+    <h4>Resume analyser</h4>
+    <form method="post" enctype="multipart/form-data">
+        <textarea name="resumetxt" placeholder="paste here or"></textarea>
+        <p>upload a file</p>
+        <input type="file" name="file">
+        <input name="role" placeholder="what are you applying for" required>
+        <button type="submit"> analyze</button>
+    </form>
+</div>
+{%if result%}
+<div>
+    {%if result.error %}
+        <p class="red">error:{{result.error}}</p>
+    {%endif%}
+    <h1>Skills</h1>
+    <ul>
+        {%for s in result.get("Skills",[]) %}
+        <li>{{s}}</li>
+        {%endfor%}
+             
+    </ul>
+    <h1>missing skills</h1>
+    <ul>
+        {%for s in result.get("missing_skills",[]) %}
+        <li>{{s}}</li>
+        {%endfor%}
+             
+    </ul> 
+    <h1>roadmap</h1>
+    <ul>
+        {%for s in result.get("roadmap",[]) %}
+        <li>{{s}}</li>
+        {%endfor%}
+             
+    </ul>
+    <h1>interview_questions</h1>
+    <ul>
+        {%for s in result.get("interview_questions",[]) %}
+        <li>{{s}}</li>
+        {%endfor%}
+             
+    </ul>
+</div>
+{%endif%}
+{%endblock%}
