@@ -1,18 +1,12 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+import os
 
-
-DATABASE_URL ="mysql://3saVw6Sp2UMaZKb.root:<PASSWORD>@gateway01.ap-southeast-1.prod.alicloud.tidbcloud.com:4000/sys" 
-
-engine=create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,
-    connect_args={
-        "ssl":{
-          "ssl":True
-        }
-    }
+sqlite_path = os.path.join(os.path.dirname(__file__), "app.db")
+engine = create_engine(
+    f"sqlite:///{sqlite_path}",
+    connect_args={"check_same_thread": False},
 )
 
-Sessionlocal = sessionmaker(bind=engine)
-Base= declarative_base()
+Sessionlocal = sessionmaker(bind=engine, expire_on_commit=False)
+Base = declarative_base()

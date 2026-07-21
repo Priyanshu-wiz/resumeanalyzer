@@ -17,33 +17,36 @@
     {%if result.error %}
         <p class="red">error:{{result.error}}</p>
     {%endif%}
-    <h1>Skills</h1>
+
+    <h2>Score</h2>
+    <p>{{ result.get('score', 'N/A') }}</p>
+
+    <h2>Strengths</h2>
     <ul>
-        {%for s in result.get("Skills",[]) %}
-        <li>{{s}}</li>
+        {%for s in result.get('strengths', []) %}
+        <li>{{ s }}</li>
         {%endfor%}
-             
     </ul>
-    <h1>missing skills</h1>
+
+    <h2>Weaknesses</h2>
     <ul>
-        {%for s in result.get("missing_skills",[]) %}
-        <li>{{s}}</li>
+        {%for s in result.get('weaknesses', []) %}
+        <li>{{ s }}</li>
         {%endfor%}
-             
-    </ul> 
-    <h1>roadmap</h1>
-    <ul>
-        {%for s in result.get("roadmap",[]) %}
-        <li>{{s}}</li>
-        {%endfor%}
-             
     </ul>
-    <h1>interview_questions</h1>
+
+    <h2>Missing Skills</h2>
     <ul>
-        {%for s in result.get("interview_questions",[]) %}
-        <li>{{s}}</li>
+        {%for s in result.get('missing_skills', []) %}
+        <li>{{ s }}</li>
         {%endfor%}
-             
+    </ul>
+
+    <h2>Interview Questions</h2>
+    <ul>
+        {%for s in result.get('interview_questions', []) %}
+        <li>{{ s }}</li>
+        {%endfor%}
     </ul>
 </div>
 {%endif%}

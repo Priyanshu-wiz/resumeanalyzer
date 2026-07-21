@@ -6,30 +6,49 @@ import PyPDF2
 import docx
 import json
 app=Flask("__name__")
+app.secret_key="seceretkey"  # Replace
 
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as exc:
+    app.logger.warning("Database tables could not be created automatically: %s", exc)
+
 @app.route('/')
 def home():
     if "user" in session:
         return redirect("/dashboard.html")
     else:
-        return redirect("login.html")
-@app.route('/signup',methods=["GET","POST"])
-def signup():
-    db=Sessionlocal()
-    if request.method=="POST":
-        email=request.form.get("email")
-        password=request.form.get("password")
-        existing_user=db.query(models.User).filter_by(email=email).first()
-        if existing_user:
-            return "user already exists"
-        user=models.User(email=email,password=password)
-        db.add(user)
-        db.commit()
         return redirect("/login.html")
-    return render_template("/signup.html")
-    
-@app.route('/login')
+
+@app.route('/signup', methods=['GET', 'POST'])
+@app.route('/signup.html', methods=['GET', 'POST'])
+def signup():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        if not email or not password:
+            return render_template("signup.html", error="Email and password are required")
+
+        try:
+            db = Sessionlocal()
+            existing_user = db.query(models.User).filter_by(email=email).first()
+            if existing_user:
+                return render_template("signup.html", error="User already exists")
+
+            user = models.User(email=email, password=password)
+            db.add(user)
+            db.commit()
+            return redirect("/login.html")
+        except Exception as exc:
+            db.rollback()
+            app.logger.exception("Signup failed")
+            return render_template("signup.html", error="Signup failed. Please try again.")
+
+    return render_template("signup.html")
+
+@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login.html', methods=['GET', 'POST'])
 def login():
     db=Sessionlocal()
     if request.method=="POST":
@@ -43,17 +62,22 @@ def login():
         else:
             return " invalid credientials"
 
-    return render_template("/login.html")
-@app.route('/dashboard.html',method=["GET","POST"])
+    return render_template("login.html")
+
+@app.route('/dashboard.html', methods=['GET', 'POST'])
 def dashboard():
     if "user" not in session:
         return redirect('/login.html')
-    result=None
-    if request.method=="POST":
-        user_goal=request.form.get("role")
-        resume_text=request.form.get("resumetxt")
 
-        file=request.file.get("file")
+    result = None
+    resume_text = None
+    user_goal = None
+
+    if request.method == "POST":
+        user_goal = request.form.get("role")
+        resume_text = request.form.get("resumetxt")
+
+        file=request.files.get("file")
 
         if file and file.name !="":
             if file.filename.endswith(".pdf"):
@@ -78,19 +102,25 @@ def dashboard():
 
     if resume_text and user_goal:
         try:
-            result=analyze_resume(resume_text,user_goal)
-            db= Sessionlocal()
-            user =db.query(models.User).filter_by(email=session["user"]).first()
-            report=models.Report(
-                user_id=user.id,
-                resume_text=resume_text,
-                results=json.dump(result)
-            )
-            db.add(report)
-            db.commit()
-            
+            result = analyze_resume(resume_text, user_goal)
         except Exception as e:
-            result={"error":f"Ai error"}
+            app.logger.exception("AI analysis failed")
+            result = {"error": f"Ai error: {str(e)}"}
+
+        if isinstance(result, dict) and not result.get("error"):
+            try:
+                db = Sessionlocal()
+                user = db.query(models.User).filter_by(email=session["user"]).first()
+                if user is not None:
+                    report = models.Report(
+                        user_id=user.id,
+                        resume_text=resume_text,
+                        results=json.dumps(result)
+                    )
+                    db.add(report)
+                    db.commit()
+            except Exception as e:
+                app.logger.exception("Saving report failed")
     return render_template(
         "dashboard.html",
         user=session["user"],
