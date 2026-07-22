@@ -114,8 +114,8 @@ def dashboard():
                 if user is not None:
                     report = models.Report(
                         user_id=user.id,
-                        resume_text=resume_text,
-                        results=json.dumps(result)
+                        report=resume_text,
+                        result=json.dumps(result)
                     )
                     db.add(report)
                     db.commit()
@@ -127,7 +127,42 @@ def dashboard():
         result=result
     )
 
+@app.route("/history")
+@app.route("/history.html")
+def history():
+    if "user" not in session:
+        return redirect('/login.html')
 
+    db = Sessionlocal()
+    try:
+        user = db.query(models.User).filter_by(email=session["user"]).first()
+        if user is None:
+            return redirect('/login.html')
+
+        reports = (
+            db.query(models.Report)
+            .filter_by(user_id=user.id)
+            .order_by(models.Report.id.desc())
+            .all()
+        )
+
+        history_items = []
+        for report in reports:
+            parsed_result = {}
+            try:
+                parsed_result = json.loads(report.result) if report.result else {}
+            except Exception:
+                parsed_result = {}
+
+            history_items.append({
+                "id": report.id,
+                "resume_text": report.report or "",
+                "result": parsed_result
+            })
+
+        return render_template("history.html", reports=history_items)
+    finally:
+        db.close()
 
 
 
